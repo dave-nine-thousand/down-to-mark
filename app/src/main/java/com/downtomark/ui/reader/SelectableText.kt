@@ -80,49 +80,55 @@ fun SelectableBlock(
             .fillMaxWidth()
             .padding(bottom = if (isHeading) 8.dp else 12.dp)
             .pointerInput(blockIndex, highlights, selectionState.firstTapOffset) {
-                detectTapGestures { offset ->
-                    val layout = textLayoutResult ?: return@detectTapGestures
-                    val charOffset = layout.getOffsetForPosition(offset)
-
-                    // Check if tapping an existing highlight
-                    val tappedHighlight = highlights.find { h ->
-                        charOffset in h.startOffset until h.endOffset
-                    }
-                    if (tappedHighlight != null) {
-                        onHighlightTap(tappedHighlight)
-                        return@detectTapGestures
-                    }
-
-                    // Two-tap selection
-                    if (selectionState.blockIndex != blockIndex || selectionState.firstTapOffset == null) {
-                        // First tap — select word at position
+                detectTapGestures(
+                    onLongPress = { offset ->
+                        val layout = textLayoutResult ?: return@detectTapGestures
+                        val charOffset = layout.getOffsetForPosition(offset)
                         val (wordStart, wordEnd) = findWordBoundary(content.text, charOffset)
                         selectionState.blockIndex = blockIndex
                         selectionState.firstTapOffset = wordStart
                         selectionState.firstTapEnd = wordEnd
-                    } else {
-                        // Second tap — complete selection
-                        val firstStart = selectionState.firstTapOffset!!
-                        val (_, wordEnd) = findWordBoundary(content.text, charOffset)
-                        val selStart = minOf(firstStart, charOffset)
-                        val selEnd = maxOf(selectionState.firstTapEnd ?: firstStart, wordEnd)
-                        val selectedText = content.text.substring(
-                            selStart.coerceIn(0, content.text.length),
-                            selEnd.coerceIn(0, content.text.length)
-                        )
-                        if (selectedText.isNotBlank()) {
-                            onSelectionComplete(
-                                TextSelection(
-                                    blockIndex = blockIndex,
-                                    startOffset = selStart,
-                                    endOffset = selEnd,
-                                    selectedText = selectedText
-                                )
-                            )
+                    },
+                    onTap = { offset ->
+                        val layout = textLayoutResult ?: return@detectTapGestures
+                        val charOffset = layout.getOffsetForPosition(offset)
+
+                        // Check if tapping an existing highlight
+                        val tappedHighlight = highlights.find { h ->
+                            charOffset in h.startOffset until h.endOffset
                         }
-                        selectionState.reset()
+                        if (tappedHighlight != null) {
+                            onHighlightTap(tappedHighlight)
+                            return@detectTapGestures
+                        }
+
+                        // Complete selection if long-press started on this block
+                        if (selectionState.blockIndex == blockIndex && selectionState.firstTapOffset != null) {
+                            val firstStart = selectionState.firstTapOffset!!
+                            val (_, wordEnd) = findWordBoundary(content.text, charOffset)
+                            val selStart = minOf(firstStart, charOffset)
+                            val selEnd = maxOf(selectionState.firstTapEnd ?: firstStart, wordEnd)
+                            val selectedText = content.text.substring(
+                                selStart.coerceIn(0, content.text.length),
+                                selEnd.coerceIn(0, content.text.length)
+                            )
+                            if (selectedText.isNotBlank()) {
+                                onSelectionComplete(
+                                    TextSelection(
+                                        blockIndex = blockIndex,
+                                        startOffset = selStart,
+                                        endOffset = selEnd,
+                                        selectedText = selectedText
+                                    )
+                                )
+                            }
+                            selectionState.reset()
+                        } else {
+                            // Tap with no active selection — clear any stale state
+                            selectionState.reset()
+                        }
                     }
-                }
+                )
             }
     ) {
         Text(
@@ -194,7 +200,7 @@ private fun buildStyledText(
             }
         }
 
-        // Apply first-tap selection preview
+        // Apply long-press selection preview
         if (selectionState.blockIndex == blockIndex && selectionState.firstTapOffset != null) {
             val start = selectionState.firstTapOffset!!.coerceAtMost(content.length)
             val end = (selectionState.firstTapEnd ?: start).coerceAtMost(content.length)
