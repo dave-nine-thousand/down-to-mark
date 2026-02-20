@@ -65,6 +65,7 @@ fun ReaderScreen(
     val fileNotes by viewModel.fileNotes.collectAsState()
     val fileName by viewModel.fileName.collectAsState()
     val contentHashMismatch by viewModel.contentHashMismatch.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     var showThemeMenu by remember { mutableStateOf(false) }
     var showNotesSheet by remember { mutableStateOf(false) }
@@ -85,6 +86,10 @@ fun ReaderScreen(
         if (contentHashMismatch) {
             snackbarHostState.showSnackbar("File content has changed since notes were created")
         }
+    }
+
+    LaunchedEffect(error) {
+        error?.let { snackbarHostState.showSnackbar(it) }
     }
 
     Scaffold(

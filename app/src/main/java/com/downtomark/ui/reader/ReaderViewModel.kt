@@ -35,14 +35,22 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     private val _contentHashMismatch = MutableStateFlow(false)
     val contentHashMismatch: StateFlow<Boolean> = _contentHashMismatch
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
     fun loadFile(uri: String) {
         currentUri = uri
+        _error.value = null
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val context = getApplication<DownToMarkApp>()
                 val contentUri = Uri.parse(uri)
                 val content = context.contentResolver.openInputStream(contentUri)
-                    ?.bufferedReader()?.use { it.readText() } ?: return@launch
+                    ?.bufferedReader()?.use { it.readText() }
+                if (content == null) {
+                    _error.value = "Could not read file — permission may have been revoked"
+                    return@launch
+                }
 
                 val name = resolveFileName(contentUri)
                 _fileName.value = name
@@ -78,8 +86,8 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
                 )
                 repository.saveIndex(repository.updateIndex(index, entry))
             } catch (e: Exception) {
-                // URI may have lost permission
-                e.printStackTrace()
+                _error.value = "Error loading file: ${e.message}"
+                android.util.Log.e("ReaderViewModel", "Failed to load $uri", e)
             }
         }
     }

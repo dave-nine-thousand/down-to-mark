@@ -9,8 +9,7 @@ import androidx.navigation.navArgument
 import com.downtomark.ui.graph.GraphScreen
 import com.downtomark.ui.home.HomeScreen
 import com.downtomark.ui.reader.ReaderScreen
-import java.net.URLDecoder
-import java.net.URLEncoder
+import android.util.Base64
 
 object Routes {
     const val HOME = "home"
@@ -18,8 +17,15 @@ object Routes {
     const val GRAPH = "graph"
 
     fun reader(fileUri: String): String {
-        val encoded = URLEncoder.encode(fileUri, "UTF-8")
+        val encoded = Base64.encodeToString(
+            fileUri.toByteArray(),
+            Base64.URL_SAFE or Base64.NO_WRAP
+        )
         return "reader/$encoded"
+    }
+
+    fun decodeUri(encoded: String): String {
+        return String(Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP))
     }
 }
 
@@ -41,7 +47,7 @@ fun AppNavigation(navController: NavHostController) {
             arguments = listOf(navArgument("fileUri") { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedUri = backStackEntry.arguments?.getString("fileUri") ?: return@composable
-            val fileUri = URLDecoder.decode(encodedUri, "UTF-8")
+            val fileUri = Routes.decodeUri(encodedUri)
             ReaderScreen(
                 fileUri = fileUri,
                 onNavigateBack = { navController.popBackStack() }
