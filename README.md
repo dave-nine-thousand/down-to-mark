@@ -31,6 +31,33 @@ Requires JDK 17+ and Android SDK with platform 35.
 
 APK lands in `app/build/outputs/apk/debug/`.
 
+## Installing
+
+### From a release APK
+
+1. Download the `.apk` from [Releases](https://github.com/dave-nine-thousand/down-to-mark/releases)
+2. Transfer it to your Android device (USB, email, cloud drive, etc.)
+3. Open the APK on the device — you'll be prompted to allow **Install from unknown sources** for whichever app you used to open it (Files, Chrome, etc.)
+4. Tap Install
+
+Requires Android 12 or later.
+
+### Via ADB
+
+With your device connected over USB or wireless debugging:
+
+```bash
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
+
+### Build and install directly
+
+```bash
+./gradlew installDebug
+```
+
+This builds the APK and pushes it to the connected device in one step.
+
 ## Status
 
 Early. Core reading and annotation loop works. Rough edges remain — no image rendering, no table support, selection UX needs iteration. Contributions welcome but this is a personal tool first.
